@@ -53,8 +53,6 @@ public:
     UserAccount *findUserById(uid_t uid);
     UserAccount *findUserByName(const QString &userName);
 
-    Q_INVOKABLE QString findUserIconFile(const QString &userName);
-
     bool createUser(const QString &userName,
                     const QString &fullName,
                     UserAccount::AccountType accountType);
@@ -65,13 +63,9 @@ public:
 Q_SIGNALS:
     void userAdded(UserAccount *);
     void userDeleted(UserAccount *);
-    void userAccountChanged();
 
 protected:
     AccountsManagerPrivate *d_ptr;
-
-private slots:
-    void slotUserAccountChanged();
 
 private:
     Q_DECLARE_PRIVATE(AccountsManager)
