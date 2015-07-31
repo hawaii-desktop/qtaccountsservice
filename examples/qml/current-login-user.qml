@@ -26,6 +26,7 @@
 
 import QtQuick 2.2
 import QtQuick.Window 2.1
+import QtQuick.Controls 1.1
 import QtAccountsService 1.0
 
 Window {
@@ -37,7 +38,10 @@ Window {
         Component.onCompleted: {
             faceIcon.source = iconFileName;
             loginName.text = userName;
-            displayName.text = userAccount.displayName;
+            realName.text = userAccount.realName;
+        }
+        onAccountChanged: {
+            faceIcon.source = iconFileName;
         }
     }
 
@@ -50,9 +54,13 @@ Window {
         anchors.left: faceIcon.right
     }
 
-    Text {
-        id: displayName
+    TextField {
+        id: realName
         anchors.top: loginName.bottom
         anchors.left: loginName.left
+
+        onEditingFinished: {
+            userAccount.setRealName(realName.text);
+        }
     }
 }

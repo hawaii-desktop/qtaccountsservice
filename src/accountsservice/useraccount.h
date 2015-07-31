@@ -110,7 +110,7 @@ public:
     void setUserName(const QString &userName);
 
     QString realName() const;
-    void setRealName(const QString &realName);
+    Q_INVOKABLE void setRealName(const QString &realName);
 
     QString displayName() const;
 
