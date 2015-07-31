@@ -209,13 +209,10 @@ UserAccount *AccountsManager::findUserById(uid_t uid)
     Finds a user by user \a userName
 
     \param uid The user name to look up.
-    \return the corresponding UserAccount object.
 */
 void AccountsManager::findUserByName(const QString &userName)
 {
     Q_D(AccountsManager);
-
-    auto ret = 0;
 
     QDBusPendingCall call = d->interface->FindUserByName(userName);
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, this);
