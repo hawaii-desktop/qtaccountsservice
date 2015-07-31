@@ -24,23 +24,43 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-import QtQuick 2.0
-import QtAccountsService 1.0
+#ifndef FAKEACCOUNTS_H
+#define FAKEACCOUNTS_H
 
-ListView {
-    model: UsersModel {}
-    spacing: 8
-    delegate: Row {
-        spacing: 8
+#include <QtCore/QObject>
 
-        Image {
-            width: 96
-            height: width
-            source: iconFileName
-        }
+#include "fakeuser.h"
 
-        Text {
-            text: userName
-        }
-    }
-}
+class FakeAccounts : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QString DaemonVersion READ daemonVersion CONSTANT)
+public:
+    FakeAccounts(QObject *parent = 0);
+    ~FakeAccounts();
+
+    QString daemonVersion() const;
+
+public Q_SLOTS:
+    QDBusObjectPath CacheUser(const QString &name);
+    void UncacheUser(const QString &name);
+    QList<QDBusObjectPath> ListCachedUsers();
+
+    QDBusObjectPath CreateUser(const QString &name,
+                               const QString &fullName,
+                               int accountType);
+    void DeleteUser(qlonglong id, bool removeFiles);
+
+    QDBusObjectPath FindUserById(qlonglong id);
+    QDBusObjectPath FindUserByName(const QString &name);
+
+Q_SIGNALS:
+    void UserAdded(const QDBusObjectPath &user);
+    void UserDeleted(const QDBusObjectPath &user);
+
+private:
+    qlonglong m_lastUid;
+    QList<FakeUser *> m_users;
+};
+
+#endif // FAKEACCOUNTS_H

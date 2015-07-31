@@ -56,16 +56,14 @@ UserAccountPrivate::UserAccountPrivate()
 /*!
     Constructs a UserAccount object for the currently logged in user.
 */
-UserAccount::UserAccount()
+UserAccount::UserAccount(const QDBusConnection &bus)
     : d_ptr(new UserAccountPrivate)
 {
-    QString objectPath = QLatin1String("/org/freedesktop/Accounts/User") + QString::number(getuid());
+    QString objectPath = QStringLiteral("/org/freedesktop/Accounts/User") + QString::number(getuid());
 
     d_ptr->user =
-        new OrgFreedesktopAccountsUserInterface(QLatin1String("org.freedesktop.Accounts"),
-                                                objectPath,
-                                                QDBusConnection::systemBus(),
-                                                this);
+        new OrgFreedesktopAccountsUserInterface(QStringLiteral("org.freedesktop.Accounts"),
+                                                objectPath, bus, this);
     connect(d_ptr->user, SIGNAL(Changed()), this, SIGNAL(accountChanged()));
 }
 
@@ -74,16 +72,14 @@ UserAccount::UserAccount()
 
     \param uid User identifier.
 */
-UserAccount::UserAccount(uid_t uid)
+UserAccount::UserAccount(uid_t uid, const QDBusConnection &bus)
     : d_ptr(new UserAccountPrivate)
 {
-    QString objectPath = QLatin1String("/org/freedesktop/Accounts/User") + QString::number(uid);
+    QString objectPath = QStringLiteral("/org/freedesktop/Accounts/User") + QString::number(uid);
 
     d_ptr->user =
-        new OrgFreedesktopAccountsUserInterface(QLatin1String("org.freedesktop.Accounts"),
-                                                objectPath,
-                                                QDBusConnection::systemBus(),
-                                                this);
+        new OrgFreedesktopAccountsUserInterface(QStringLiteral("org.freedesktop.Accounts"),
+                                                objectPath, bus, this);
     connect(d_ptr->user, SIGNAL(Changed()), this, SIGNAL(accountChanged()));
 }
 
@@ -93,14 +89,12 @@ UserAccount::UserAccount(uid_t uid)
 
     \param objectPath Accounts Service object path for the user account.
 */
-UserAccount::UserAccount(const QString &objectPath)
+UserAccount::UserAccount(const QString &objectPath, const QDBusConnection &bus)
     : d_ptr(new UserAccountPrivate)
 {
     d_ptr->user =
-        new OrgFreedesktopAccountsUserInterface(QLatin1String("org.freedesktop.Accounts"),
-                                                objectPath,
-                                                QDBusConnection::systemBus(),
-                                                this);
+        new OrgFreedesktopAccountsUserInterface(QStringLiteral("org.freedesktop.Accounts"),
+                                                objectPath, bus, this);
     connect(d_ptr->user, SIGNAL(Changed()), this, SIGNAL(accountChanged()));
 }
 
@@ -167,7 +161,7 @@ void UserAccount::setAccountType(AccountType type)
 {
     Q_D(UserAccount);
     d->user->SetAccountType((int)type);
-    emit accountTypeChanged();
+    Q_EMIT accountTypeChanged();
 }
 
 /*!
@@ -189,7 +183,7 @@ void UserAccount::setLocked(bool locked)
 {
     Q_D(UserAccount);
     d->user->SetLocked(locked);
-    emit lockedChanged();
+    Q_EMIT lockedChanged();
 }
 
 /*!
@@ -212,7 +206,7 @@ void UserAccount::setAutomaticLogin(bool automaticLogin)
 {
     Q_D(UserAccount);
     d->user->SetAutomaticLogin(automaticLogin);
-    emit automaticLoginChanged();
+    Q_EMIT automaticLoginChanged();
 }
 
 /*!
@@ -251,7 +245,7 @@ void UserAccount::setPasswordMode(UserAccount::PasswordMode mode)
 {
     Q_D(UserAccount);
     d->user->SetPasswordMode((int)mode);
-    emit passwordModeChanged();
+    Q_EMIT passwordModeChanged();
 }
 
 /*!
@@ -299,8 +293,8 @@ void UserAccount::setUserName(const QString &userName)
 {
     Q_D(UserAccount);
     d->user->SetUserName(userName);
-    emit userNameChanged();
-    emit displayNameChanged();
+    Q_EMIT userNameChanged();
+    Q_EMIT displayNameChanged();
 }
 
 /*!
@@ -321,8 +315,8 @@ void UserAccount::setRealName(const QString &realName)
 {
     Q_D(UserAccount);
     d->user->SetRealName(realName);
-    emit realNameChanged();
-    emit displayNameChanged();
+    Q_EMIT realNameChanged();
+    Q_EMIT displayNameChanged();
 }
 
 /*!
@@ -353,7 +347,7 @@ void UserAccount::setHomeDirectory(const QString &homeDirectory)
 {
     Q_D(UserAccount);
     d->user->SetHomeDirectory(homeDirectory);
-    emit homeDirectoryChanged();
+    Q_EMIT homeDirectoryChanged();
 }
 
 /*!
@@ -374,7 +368,7 @@ void UserAccount::setShell(const QString &shell)
 {
     Q_D(UserAccount);
     d->user->SetShell(shell);
-    emit shellChanged();
+    Q_EMIT shellChanged();
 }
 
 /*!
@@ -395,7 +389,7 @@ void UserAccount::setIconFileName(const QString &fileName)
 {
     Q_D(UserAccount);
     d->user->SetIconFile(fileName);
-    emit iconFileNameChanged();
+    Q_EMIT iconFileNameChanged();
 }
 
 /*!
@@ -416,7 +410,7 @@ void UserAccount::setEmail(const QString &email)
 {
     Q_D(UserAccount);
     d->user->SetEmail(email);
-    emit emailChanged();
+    Q_EMIT emailChanged();
 }
 
 /*!
@@ -437,7 +431,7 @@ void UserAccount::setLanguage(const QString &language)
 {
     Q_D(UserAccount);
     d->user->SetLanguage(language);
-    emit languageChanged();
+    Q_EMIT languageChanged();
 }
 
 /*!
@@ -458,7 +452,7 @@ void UserAccount::setLocation(const QString &location)
 {
     Q_D(UserAccount);
     d->user->SetLocation(location);
-    emit locationChanged();
+    Q_EMIT locationChanged();
 }
 
 /*!
@@ -479,7 +473,7 @@ void UserAccount::setXSession(const QString &session)
 {
     Q_D(UserAccount);
     d->user->SetXSession(session);
-    emit xsessionChanged();
+    Q_EMIT xsessionChanged();
 }
 
 /*!

@@ -25,6 +25,7 @@
  ***************************************************************************/
 
 #include <QtCore/QDebug>
+#include <QtDBus/QDBusPendingCallWatcher>
 
 #include "accountsmanager.h"
 #include "accountsmanager_p.h"
@@ -35,12 +36,12 @@ namespace QtAccountsService {
  * AccountsManagerPrivate
  */
 
-AccountsManagerPrivate::AccountsManagerPrivate()
+AccountsManagerPrivate::AccountsManagerPrivate(const QDBusConnection &bus)
 {
     interface = new OrgFreedesktopAccountsInterface(
-        QLatin1String("org.freedesktop.Accounts"),
-        QLatin1String("/org/freedesktop/Accounts"),
-        QDBusConnection::systemBus());
+        QStringLiteral("org.freedesktop.Accounts"),
+        QStringLiteral("/org/freedesktop/Accounts"),
+        bus);
 }
 
 AccountsManagerPrivate::~AccountsManagerPrivate()
@@ -51,13 +52,13 @@ AccountsManagerPrivate::~AccountsManagerPrivate()
 void AccountsManagerPrivate::_q_userAdded(const QDBusObjectPath &path)
 {
     Q_Q(AccountsManager);
-    emit q->userAdded(new UserAccount(path.path()));
+    Q_EMIT q->userAdded(new UserAccount(path.path(), interface->connection()));
 }
 
 void AccountsManagerPrivate::_q_userDeleted(const QDBusObjectPath &path)
 {
     Q_Q(AccountsManager);
-    emit q->userDeleted(new UserAccount(path.path()));
+    Q_EMIT q->userDeleted(new UserAccount(path.path(), interface->connection()));
 }
 
 /*!
@@ -73,8 +74,8 @@ void AccountsManagerPrivate::_q_userDeleted(const QDBusObjectPath &path)
 /*!
     Constructs a AccountsManager object.
 */
-AccountsManager::AccountsManager()
-    : d_ptr(new AccountsManagerPrivate)
+AccountsManager::AccountsManager(const QDBusConnection &bus)
+    : d_ptr(new AccountsManagerPrivate(bus))
 {
     d_ptr->q_ptr = this;
 
@@ -97,25 +98,30 @@ AccountsManager::~AccountsManager()
     The user name may be a remote user, but the system must be able to lookup
     the user name and resolve the user information.
 
+    A userCached() signal with a UserAccount pointer will be emitted as soon
+    as the user account has been cached by AccountsService.
+
     \param userName The user name for the user.
 */
-UserAccount *AccountsManager::cacheUser(const QString &userName)
+void AccountsManager::cacheUser(const QString &userName)
 {
     Q_D(AccountsManager);
 
-    QDBusPendingReply<QDBusObjectPath> reply = d->interface->CacheUser(userName);
-    reply.waitForFinished();
-
-    if (reply.isError()) {
-        QDBusError error = reply.error();
-        qWarning("Couldn't cache user %s: %s",
-                 userName.toUtf8().constData(),
-                 error.errorString(error.type()).toUtf8().constData());
-        return 0;
-    }
-
-    QDBusObjectPath path = reply.argumentAt<0>();
-    return new UserAccount(path.path());
+    QDBusPendingCall call = d->interface->CacheUser(userName);
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [=](QDBusPendingCallWatcher *w) {
+        QDBusPendingReply<QDBusObjectPath> reply = *w;
+        if (reply.isError()) {
+            QDBusError error = reply.error();
+            qWarning("Couldn't cache user %s: %s",
+                     userName.toUtf8().constData(),
+                     error.errorString(error.type()).toUtf8().constData());
+        } else {
+            QDBusObjectPath path = reply.argumentAt<0>();
+            if (!path.path().isEmpty())
+                Q_EMIT userCached(new UserAccount(path.path(), d->interface->connection()));
+        }
+    });
 }
 
 /*!
@@ -167,7 +173,7 @@ UserAccountList AccountsManager::listCachedUsers()
 
     QList<QDBusObjectPath> value = reply.argumentAt<0>();
     for (int i = 0; i < value.size(); i++)
-        list.append(new UserAccount(value.at(i).path()));
+        list.append(new UserAccount(value.at(i).path(), d->interface->connection()));
 
     return list;
 }
@@ -193,7 +199,9 @@ UserAccount *AccountsManager::findUserById(uid_t uid)
     }
 
     QDBusObjectPath path = reply.argumentAt<0>();
-    return new UserAccount(path.path());
+    if (path.path().isEmpty())
+        return Q_NULLPTR;
+    return new UserAccount(path.path(), d->interface->connection());
 }
 
 /*!
@@ -218,7 +226,9 @@ UserAccount *AccountsManager::findUserByName(const QString &userName)
     }
 
     QDBusObjectPath path = reply.argumentAt<0>();
-    return new UserAccount(path.path());
+    if (path.path().isEmpty())
+        return Q_NULLPTR;
+    return new UserAccount(path.path(), d->interface->connection());
 }
 
 /*!
@@ -258,7 +268,7 @@ bool AccountsManager::deleteUser(uid_t uid, bool removeFiles)
 {
     Q_D(AccountsManager);
 
-    QDBusPendingReply<QDBusObjectPath> reply = d->interface->DeleteUser(uid, removeFiles);
+    QDBusPendingReply<> reply = d->interface->DeleteUser(uid, removeFiles);
     if (reply.isError()) {
         QDBusError error = reply.error();
         qWarning("Couldn't delete user %d: %s", uid,
