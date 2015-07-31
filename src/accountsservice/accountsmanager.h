@@ -52,7 +52,7 @@ public:
     UserAccountList listCachedUsers();
 
     UserAccount *findUserById(uid_t uid);
-    UserAccount *findUserByName(const QString &userName);
+    void findUserByName(const QString &userName);
 
     bool createUser(const QString &userName,
                     const QString &fullName,
@@ -65,6 +65,7 @@ Q_SIGNALS:
     void userAdded(UserAccount *);
     void userDeleted(UserAccount *);
     void userCached(UserAccount *);
+    void userFound(UserAccount *);
 
 protected:
     AccountsManagerPrivate *d_ptr;

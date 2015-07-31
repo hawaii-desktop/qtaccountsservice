@@ -210,25 +210,28 @@ UserAccount *AccountsManager::findUserById(uid_t uid)
     \param uid The user name to look up.
     \return the corresponding UserAccount object.
 */
-UserAccount *AccountsManager::findUserByName(const QString &userName)
+void AccountsManager::findUserByName(const QString &userName)
 {
     Q_D(AccountsManager);
 
-    QDBusPendingReply<QDBusObjectPath> reply = d->interface->FindUserByName(userName);
-    reply.waitForFinished();
+    auto ret = 0;
 
-    if (reply.isError()) {
-        QDBusError error = reply.error();
-        qWarning("Couldn't find user by user name %s: %s",
-                 userName.toUtf8().constData(),
-                 error.errorString(error.type()).toUtf8().constData());
-        return 0;
-    }
-
-    QDBusObjectPath path = reply.argumentAt<0>();
-    if (path.path().isEmpty())
-        return Q_NULLPTR;
-    return new UserAccount(path.path(), d->interface->connection());
+    QDBusPendingCall call = d->interface->FindUserByName(userName);
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [=](QDBusPendingCallWatcher *w) {
+        QDBusPendingReply<QDBusObjectPath> reply = *w;
+        w->deleteLater();
+        if (reply.isError()) {
+            QDBusError error = reply.error();
+            qWarning("Couldn't find user by name %s: %s",
+                     userName.toUtf8().constData(),
+                     error.errorString(error.type()).toUtf8().constData());
+        } else {
+            QDBusObjectPath path = reply.argumentAt<0>();
+            if (!path.path().isEmpty())
+                Q_EMIT userFound(new UserAccount(path.path(), d->interface->connection()));
+        }
+    });
 }
 
 /*!
