@@ -52,7 +52,8 @@ public:
     UserAccountList listCachedUsers();
 
     UserAccount *findUserById(uid_t uid);
-    void findUserByName(const QString &userName);
+    UserAccount *findUserByName(const QString &userName);
+    void findUserByNameAsync(const QString &userName);
 
     bool createUser(const QString &userName,
                     const QString &fullName,

@@ -206,11 +206,40 @@ UserAccount *AccountsManager::findUserById(uid_t uid)
 }
 
 /*!
-    Finds a user by user \a userName
+    Finds a user by \a userName.
+    Sync blocking API.
 
-    \param uid The user name to look up.
+    \param userName The user name to look up.
+    \return the corresponding UserAccount object.
 */
-void AccountsManager::findUserByName(const QString &userName)
+UserAccount *AccountsManager::findUserByName(const QString &userName)
+{
+    Q_D(AccountsManager);
+
+    QDBusPendingReply<QDBusObjectPath> reply = d->interface->FindUserByName(userName);
+    reply.waitForFinished();
+
+    if (reply.isError()) {
+        QDBusError error = reply.error();
+        qWarning("Couldn't find user by user name %s: %s",
+                 userName.toUtf8().constData(),
+                 error.errorString(error.type()).toUtf8().constData());
+        return 0;
+    }
+
+    QDBusObjectPath path = reply.argumentAt<0>();
+    if (path.path().isEmpty())
+        return Q_NULLPTR;
+    return new UserAccount(path.path(), d->interface->connection());
+}
+
+/*!
+    Finds a user by user \a userName
+    Async unblocking API
+
+    \param userName The user name to look up.
+*/
+void AccountsManager::findUserByNameAsync(const QString &userName)
 {
     Q_D(AccountsManager);
 
