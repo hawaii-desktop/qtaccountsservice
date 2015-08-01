@@ -60,7 +60,7 @@ Window {
         anchors.left: loginName.left
 
         onEditingFinished: {
-            userAccount.setRealName(realName.text);
+            userAccount.realName = text;
         }
     }
 }
