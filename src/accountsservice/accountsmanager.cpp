@@ -180,6 +180,33 @@ UserAccountList AccountsManager::listCachedUsers()
 }
 
 /*!
+    Cached a list of user accounts.
+    Async unblocking API.
+*/
+void AccountsManager::listCachedUsersAsync()
+{
+    Q_D(AccountsManager);
+
+    QDBusPendingCall call = d->interface->ListCachedUsers();
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [=](QDBusPendingCallWatcher *w) {
+        QDBusPendingReply< QList<QDBusObjectPath> > reply = *w;
+        w->deleteLater();
+        if (reply.isError()) {
+            QDBusError error = reply.error();
+            qWarning("Couldn't list cached users: %s",
+                     error.errorString(error.type()).toUtf8().constData());
+        } else {
+            UserAccountList userList;
+            QList<QDBusObjectPath> value = reply.argumentAt<0>();
+            for (int i = 0; i < value.size(); i++)
+                userList.append(new UserAccount(value.at(i).path(), d->interface->connection()));
+            Q_EMIT listCachedUsersFinished(userList);
+        }
+    });
+}
+
+/*!
     Finds a user by \a uid.
 
     \param uid The uid to look up.
@@ -206,9 +233,10 @@ UserAccount *AccountsManager::findUserById(uid_t uid)
 }
 
 /*!
-    Finds a user by user \a userName
+    Finds a user by \a userName.
+    Sync blocking API.
 
-    \param uid The user name to look up.
+    \param userName The user name to look up.
     \return the corresponding UserAccount object.
 */
 UserAccount *AccountsManager::findUserByName(const QString &userName)
@@ -230,6 +258,34 @@ UserAccount *AccountsManager::findUserByName(const QString &userName)
     if (path.path().isEmpty())
         return Q_NULLPTR;
     return new UserAccount(path.path(), d->interface->connection());
+}
+
+/*!
+    Finds a user by user \a userName
+    Async unblocking API
+
+    \param userName The user name to look up.
+*/
+void AccountsManager::findUserByNameAsync(const QString &userName)
+{
+    Q_D(AccountsManager);
+
+    QDBusPendingCall call = d->interface->FindUserByName(userName);
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [=](QDBusPendingCallWatcher *w) {
+        QDBusPendingReply<QDBusObjectPath> reply = *w;
+        w->deleteLater();
+        if (reply.isError()) {
+            QDBusError error = reply.error();
+            qWarning("Couldn't find user by name %s: %s",
+                     userName.toUtf8().constData(),
+                     error.errorString(error.type()).toUtf8().constData());
+        } else {
+            QDBusObjectPath path = reply.argumentAt<0>();
+            if (!path.path().isEmpty())
+                Q_EMIT userFound(new UserAccount(path.path(), d->interface->connection()));
+        }
+    });
 }
 
 /*!

@@ -50,9 +50,11 @@ public:
     void uncacheUser(UserAccount *account);
 
     UserAccountList listCachedUsers();
+    void listCachedUsersAsync();
 
     UserAccount *findUserById(uid_t uid);
     UserAccount *findUserByName(const QString &userName);
+    void findUserByNameAsync(const QString &userName);
 
     bool createUser(const QString &userName,
                     const QString &fullName,
@@ -65,6 +67,8 @@ Q_SIGNALS:
     void userAdded(UserAccount *);
     void userDeleted(UserAccount *);
     void userCached(UserAccount *);
+    void userFound(UserAccount *);
+    void listCachedUsersFinished(UserAccountList userList);
 
 protected:
     AccountsManagerPrivate *d_ptr;

@@ -110,7 +110,7 @@ public:
     void setUserName(const QString &userName);
 
     QString realName() const;
-    void setRealName(const QString &realName);
+    Q_INVOKABLE void setRealName(const QString &realName);
 
     QString displayName() const;
 
@@ -135,7 +135,7 @@ public:
     QString xsession() const;
     void setXSession(const QString &session);
 
-    void setPassword(const QString &password, const QString &hint = "");
+    void setPassword(const QString &password, const QString &hint = QString::fromUtf8(""));
 
 Q_SIGNALS:
     void accountChanged();
