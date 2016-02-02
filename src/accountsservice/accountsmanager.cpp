@@ -25,10 +25,10 @@
  ***************************************************************************/
 
 #include <QtCore/QDebug>
-#include <QtDBus/QDBusPendingCallWatcher>
 
 #include "accountsmanager.h"
 #include "accountsmanager_p.h"
+#include "dbusfutureinterface_p.h"
 
 namespace QtAccountsService {
 
@@ -176,72 +176,18 @@ void AccountsManager::uncacheUser(UserAccount *account)
 
     \param systemUsers If true, returns also system users.
 */
-UserAccountList AccountsManager::listCachedUsers()
+QFuture<DBusObjectPathList> AccountsManager::listCachedUsers()
 {
     Q_D(AccountsManager);
 
     UserAccountList list;
 
-    QDBusPendingReply< QList<QDBusObjectPath> > reply = d->interface->ListCachedUsers();
-    reply.waitForFinished();
-
-    if (reply.isError()) {
-        QDBusError error = reply.error();
+    DBusFutureInterface<DBusObjectPathList> future(d->interface->ListCachedUsers());
+    QFuture<DBusObjectPathList> result = future.start();
+    if (result.isCanceled())
         qWarning("Couldn't list cached users: %s",
-                 error.errorString(error.type()).toUtf8().constData());
-        return list;
-    }
-
-    QList<QDBusObjectPath> value = reply.argumentAt<0>();
-    list.reserve(value.size());
-
-    for (int i = 0; i < value.size(); i++) {
-        const QString path = value.at(i).path();
-        UserAccount *account = d->usersCache.value(path, Q_NULLPTR);
-        if (!account) {
-            account = new UserAccount(path, d->interface->connection());
-            d->usersCache[path] = account;
-        }
-        list.append(account);
-    }
-
-    return list;
-}
-
-/*!
-    Cached a list of user accounts.
-    Async unblocking API.
-*/
-void AccountsManager::listCachedUsersAsync()
-{
-    Q_D(AccountsManager);
-
-    QDBusPendingCall call = d->interface->ListCachedUsers();
-    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, this);
-    connect(watcher, &QDBusPendingCallWatcher::finished, this, [=](QDBusPendingCallWatcher *w) {
-        QDBusPendingReply< QList<QDBusObjectPath> > reply = *w;
-        w->deleteLater();
-        if (reply.isError()) {
-            QDBusError error = reply.error();
-            qWarning("Couldn't list cached users: %s",
-                     error.errorString(error.type()).toUtf8().constData());
-        } else {
-            UserAccountList userList;
-
-            QList<QDBusObjectPath> value = reply.argumentAt<0>();
-            userList.reserve(value.size());
-            for (int i = 0; i < value.size(); i++) {
-                const QString path = value.at(i).path();
-                UserAccount *account = d->usersCache.value(path, Q_NULLPTR);
-                if (!account) {
-                    account = new UserAccount(path, d->interface->connection());
-                    d->usersCache[path] = account;
-                }
-                userList.append(account);
-            }
-            Q_EMIT listCachedUsersFinished(userList);
-        }
-    });
+                 result.progressText().toUtf8().constData());
+    return result;
 }
 
 /*!

@@ -28,13 +28,17 @@
 #define QTACCOUNTSSERVICE_ACCOUNTSMANAGER_H
 
 #include <QtCore/QObject>
+#include <QtCore/QFuture>
 #include <QtDBus/QDBusConnection>
+#include <QtDBus/QDBusObjectPath>
 
 #include <QtAccountsService/UserAccount>
 
 QT_FORWARD_DECLARE_CLASS(QDBusObjectPath)
 
 namespace QtAccountsService {
+
+typedef QList<QDBusObjectPath> DBusObjectPathList;
 
 class AccountsManagerPrivate;
 
@@ -49,7 +53,7 @@ public:
     void uncacheUser(const QString &userName);
     void uncacheUser(UserAccount *account);
 
-    UserAccountList listCachedUsers();
+    QFuture<DBusObjectPathList> listCachedUsers();
     void listCachedUsersAsync();
 
     UserAccount *findUserById(uid_t uid);
@@ -66,7 +70,6 @@ Q_SIGNALS:
     void userAdded(UserAccount *);
     void userDeleted(uid_t uid);
     void userCached(UserAccount *);
-    void listCachedUsersFinished(const UserAccountList &userList);
 
 protected:
     AccountsManagerPrivate *d_ptr;

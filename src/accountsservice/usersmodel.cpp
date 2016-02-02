@@ -38,7 +38,6 @@ namespace QtAccountsService {
 UsersModelPrivate::UsersModelPrivate()
 {
     manager = new AccountsManager();
-    list = manager->listCachedUsers();
 }
 
 UsersModelPrivate::~UsersModelPrivate()
@@ -80,6 +79,13 @@ UsersModel::UsersModel(QObject *parent)
             this, SLOT(_q_userAdded(UserAccount*)));
     connect(d_ptr->manager, SIGNAL(userDeleted(UserAccount*)),
             this, SLOT(_q_userDeleted(UserAccount*)));
+
+    QFutureWatcher<DBusObjectPathList> cachedUsersWatcher;
+    connect(&cachedUsersWatcher, &QFutureWatcherBase::finished,
+            this, [this, d_ptr, &cachedUsers] {
+    });
+    QFuture<DBusObjectPathList> cachedUsers = manager->listCachedUsers();
+    cachedUsersWatcher.setFuture(cachedUsers);
 }
 
 QHash<int, QByteArray> UsersModel::roleNames() const
